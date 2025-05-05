@@ -119,7 +119,11 @@ const DivisionByCompanyId = async (req, res) => {
 
 const AllDivision = async (req, res) => {
   try {
-    const divisions = await master_company_division.findAll();
+    const divisions = await master_company_division.findAll(
+      {
+        where: { is_delete: 0 },
+      }
+    );
     if (divisions.length === 0) {
       return res
         .status(404)
