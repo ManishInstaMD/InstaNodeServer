@@ -15,7 +15,7 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: { origin: ["*","https://dzpg95.csb.app/"] },
+  cors: { origin: ["*","https://dzpg95.csb.app/","https://instamd.in/"] },
   allowEIO3: true,
   credentials: true,
 });
