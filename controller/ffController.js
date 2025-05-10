@@ -55,7 +55,7 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
         {
           filter: "drawtext",
           options: {
-            fontfile: "C\\:/Windows/Fonts/arial.ttf",
+            fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             text: textBlock,
             fontsize: 20,
             fontcolor: "white",
