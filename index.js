@@ -15,6 +15,7 @@ const server = http.createServer(app);
 // Enhanced CORS configuration
 const corsOptions = {
   origin: [
+    "*",
     "http://localhost:5173", 
     "https://dzpg95.csb.app",
     "https://instamd.in",
