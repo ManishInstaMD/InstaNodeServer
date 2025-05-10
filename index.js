@@ -7,6 +7,7 @@ const setupRoutes = require("./routes/index");
 const http = require("http");
 const { sequelize } = require("./config/database");
 const defineAssociations = require("./config/associations");
+const path = require("path");
 
 
 
@@ -25,6 +26,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/processed", express.static(path.join(__dirname, "processed")));
 
 app.use((req, res, next) => {
   req.io = io;

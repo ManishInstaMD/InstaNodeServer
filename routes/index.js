@@ -14,6 +14,7 @@ const doctorRoutes = require("./doctorRoutes");
 const chemistRoutes = require("./chemistRoutes");
 const therapyRoutes = require("./therapyRoutes");
 const sesRoutes = require("./sesMailRoutes");
+const ffRoutes = require("./ffRoutes");
 
 module.exports = (app) => {
   app.use("/api/auth", authRoutes);
@@ -32,4 +33,5 @@ module.exports = (app) => {
   app.use("/api",chemistRoutes);
   app.use("/api", therapyRoutes);
   app.use('/api', sesRoutes);
+  app.use('/api', ffRoutes);
 };

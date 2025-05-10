@@ -176,13 +176,13 @@ exports.getCampaignStats = async (req, res) => {
 
     // If no stats were found, return a message indicating so
     if (!stats || stats.length === 0) {
-      return res.status(404).json({ message: 'No campaign stats found' });
+      return res.status(404).json({ message: 'No email stats found' });
     }
 
     // Return the stats data
     return res.status(200).json(stats);
   } catch (error) {
-    console.error('Error fetching campaign stats:', error);
-    return res.status(500).json({ message: 'Error fetching campaign stats' });
+    console.error('Error fetching email stats:', error);
+    return res.status(500).json({ message: 'Error fetching email stats' });
   }
 };
