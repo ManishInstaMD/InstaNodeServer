@@ -9,55 +9,64 @@ const { sequelize } = require("./config/database");
 const defineAssociations = require("./config/associations");
 const path = require("path");
 
-
-
-
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: { origin: ["*","https://dzpg95.csb.app/","https://instamd.in/"] },
-  allowEIO3: true,
-  credentials: true,
-});
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-});
+// Enhanced CORS configuration
+const corsOptions = {
+  origin: [
+    "http://localhost:5173", 
+    "https://dzpg95.csb.app",
+    "https://instamd.in",
+    "https://internal.instamd.in" 
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
 
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+// Other middleware
+app.use(express.json());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Static files
 app.use("/processed", express.static(path.join(__dirname, "processed")));
 
+// Socket.io setup with proper CORS
+const io = socketIo(server, {
+  cors: corsOptions,
+  allowEIO3: true
+});
+
+// Attach io to requests
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
-app.use(cors());
-app.use(express.json());
-app.use(bodyParser.json());
+
+// Routes
 setupRoutes(app);
 defineAssociations();
-
-
 
 // Basic Route
 app.get('/', (req, res) => {
   res.send('Server is up and running!');
 });
 
-
-
-
 // Watch for database changes
 setInterval(async () => {
   const [results] = await sequelize.query("SELECT * FROM pmt_master");
-  io.emit("updateData", results); // Send new data to frontend
+  io.emit("updateData", results);
 }, 5000);
 
-
-
-
-// Socket.io setup
+// Socket.io connection handler
 io.on("connection", (socket) => {
   console.log("Client connected");
   socket.on("disconnect", () => {
@@ -65,14 +74,7 @@ io.on("connection", (socket) => {
   });
 });
 
-
-
 const port = process.env.PORT || 5000;
 server.listen(port, "0.0.0.0", () => {
-  console.log(`Server app listening at port${port}`);
+  console.log(`Server app listening at port ${port}`);
 });
-
-
-
-
-
