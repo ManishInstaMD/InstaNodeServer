@@ -16,6 +16,7 @@ const server = http.createServer(app);
 const corsOptions = {
   origin: [
     "*",
+    "https://events-apu7.onrender.com/",
     "http://localhost:5173", 
     "https://dzpg95.csb.app",
     "https://instamd.in",
