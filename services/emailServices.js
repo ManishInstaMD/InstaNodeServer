@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const AWS = require('aws-sdk');
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
