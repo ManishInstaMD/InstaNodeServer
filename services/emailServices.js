@@ -19,7 +19,7 @@ const sendEmailOTP = async (to, subject, text, replacements, html) => {
 
   console.log(__dirname);
   // Generate the correct path to the template file
-  const templatePath = path.join(__dirname, '../templates/welcome-email-otp.html', html);
+  const templatePath = path.join(__dirname, '../templates/', html);
   let htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
 
   let projectName = process.env.PROJECT_NAME;
@@ -50,8 +50,8 @@ const sendEmailOTP = async (to, subject, text, replacements, html) => {
 // Function to send an email with HTML content and optional attachments
 const sendResetEmailOTP = async (to, subject, text, replacements, html) => {
   // Read the HTML template file
- const filePath = path.join(__dirname, '../templates/reset-password-email.html');
-  let htmlTemplate = fs.readFileSync(filePath, 'utf-8');
+  const templatePath = path.join(__dirname, '../templates/', html);
+  let htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
 
   let projectName = process.env.PROJECT_NAME;
   let companyAddress = process.env.COMPANY_ADDRESS;
