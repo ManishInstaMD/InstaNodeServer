@@ -50,7 +50,7 @@ const sendEmailOTP = async (to, subject, text, replacements, html) => {
 // Function to send an email with HTML content and optional attachments
 const sendResetEmailOTP = async (to, subject, text, replacements, html) => {
   // Read the HTML template file
-  const templatePath = path.join(__dirname, '../../InstaNode/templates/', html);
+  const templatePath = path.join(__dirname, '../templates/welcome-email-otp.html', html);
   let htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
 
   let projectName = process.env.PROJECT_NAME;
