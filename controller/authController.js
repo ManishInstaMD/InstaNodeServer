@@ -202,7 +202,7 @@ exports.forgotPassword = async (req, res) => {
     res
       .status(500)
       .json({
-        message:
+        message: error.message ||
           "An error occurred while processing your request. Please try again later.",
       });
   }

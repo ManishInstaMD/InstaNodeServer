@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const AWS = require('aws-sdk');
+const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -16,16 +16,18 @@ dotenv.config();
 // });
 
 
-// Configure AWS SDK
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION, // e.g., us-east-1
+// AWS SES Client with v3
+const ses = new SESClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
 });
 
-// Create SES transporter
+// Nodemailer transporter using AWS SES v3
 const transporter = nodemailer.createTransport({
-  SES: { ses: new AWS.SES({ apiVersion: '2010-12-01' }), aws: AWS },
+  SES: { ses, aws: { SendEmailCommand } },
 });
 
 // Function to send a welcome email with OTP
