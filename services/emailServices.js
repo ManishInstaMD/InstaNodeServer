@@ -5,13 +5,26 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Create a transporter using your email credentials
+// // Create a transporter using your email credentials
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',  // You can change this to any service you want
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS,
+//   },
+// });
+
+
+// Configure AWS SDK
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION, // e.g., us-east-1
+});
+
+// Create SES transporter
 const transporter = nodemailer.createTransport({
-  service: 'gmail',  // You can change this to any service you want
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+  SES: { ses: new AWS.SES({ apiVersion: '2010-12-01' }), aws: AWS },
 });
 
 // Function to send a welcome email with OTP
