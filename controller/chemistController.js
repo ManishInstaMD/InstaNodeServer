@@ -10,15 +10,20 @@ module.exports = {
 
   create: async (req, res) => {
     const data = req.body;
+    // console.log("data", data);
+    
      // Check for existing mobile
   const existingChemist = await db.models.master_chemist.findOne({
     where: { mobile: data.mobile },
   });
 
+  // console.log("existingChemist", existingChemist);
+  
+
   if (existingChemist) {
     return res.status(409).json({
       success: false,
-      message: "Mobile number already exists",
+      message: "Chemist with this mobile number already exists",
     });
   }
     data.auth_key = crypto.randomBytes(16).toString('hex'); 

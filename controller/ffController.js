@@ -4,10 +4,42 @@ const fs = require("fs");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 ffmpeg.setFfmpegPath(ffmpegPath);
+const https = require("https");
+const http = require("http");
 
 const processedDir = path.join(__dirname, "../processed");
 fs.mkdirSync(processedDir, { recursive: true });
 fs.chmodSync(processedDir, 0o777);
+async function downloadFile(url, directory) {
+  return new Promise((resolve, reject) => {
+    const filename = path.basename(new URL(url).pathname);
+    const filePath = path.join(directory, filename);
+    const fileStream = fs.createWriteStream(filePath);
+
+    const protocol = url.startsWith('https') ? https : http;
+
+    protocol.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download file. Status code: ${response.statusCode}`));
+        return;
+      }
+
+      response.pipe(fileStream);
+
+      fileStream.on('finish', () => {
+        fileStream.close();
+        resolve(filePath);
+      });
+
+      fileStream.on('error', (err) => {
+        fs.unlinkSync(filePath); // Delete the file if there's an error
+        reject(err);
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
 
 function wrapText(text, maxLength = 50) {
   const words = text.split(" ");
@@ -96,21 +128,30 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
   });
 }
 
-exports.uploadHandler = async (req, res, err) => {
+exports.uploadHandler = async (req, res) => {
   try {
-    if (err) return res.status(400).send({ error: err.message });
-    if (!req.files || !req.files.video)
-      return res.status(400).send({ error: "No video file uploaded" });
+    const { 
+      doctorName, 
+      degree, 
+      mobile, 
+      address,
+      videoUrl, 
+      backgroundUrl 
+    } = req.query;
 
-    const { doctorName, degree, mobile, address } = req.body;
-    if (!doctorName || !degree || !mobile || !address) {
-      if (req.files.video) fs.unlinkSync(req.files.video[0].path);
-      if (req.files.background) fs.unlinkSync(req.files.background[0].path);
-      return res.status(400).send({ error: "All fields are required" });
+    // Validate required parameters
+    if (!doctorName || !degree || !mobile || !address || !videoUrl) {
+      return res.status(400).json({ 
+        error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
+      });
     }
 
-    const videoPath = req.files.video[0].path;
-    const backgroundPath = req.files.background ? req.files.background[0].path : null;
+    // Download files
+    const videoPath = await downloadFile(videoUrl, processedDir);
+    const backgroundPath = backgroundUrl 
+      ? await downloadFile(backgroundUrl, processedDir) 
+      : null;
+
     const safeFilename = `output_${Date.now()}.mp4`;
     const outputPath = path.join(processedDir, safeFilename);
 
@@ -121,18 +162,35 @@ exports.uploadHandler = async (req, res, err) => {
       address,
     });
 
-    if (req.files.background) fs.unlinkSync(req.files.background[0].path);
-    fs.unlinkSync(videoPath);
+    // Cleanup downloaded files
+    if (videoPath) fs.unlinkSync(videoPath);
+    if (backgroundPath) fs.unlinkSync(backgroundPath);
 
-    res.status(200).send({
+    res.status(200).json({
       message: "Video processed successfully",
       file: safeFilename,
       downloadUrl: `/processed/${safeFilename}`,
     });
+
   } catch (error) {
     console.error("Processing error:", error);
-    if (req.files?.video) fs.unlinkSync(req.files.video[0].path);
-    if (req.files?.background) fs.unlinkSync(req.files.background[0].path);
-    res.status(500).send({ error: error.message });
+    res.status(500).json({ 
+      error: error.message || "Internal server error" 
+    });
   }
 };
+
+// Helper function to download files from URLs
+// async function downloadFile(url, directory) {
+//   const filename = path.basename(url);
+//   const filePath = path.join(directory, filename);
+  
+  // const response = await fetch(url);
+  // const fileStream = fs.createWriteStream(filePath);
+  
+//   return new Promise((resolve, reject) => {
+//     response.body.pipe(fileStream);
+//     response.body.on("error", reject);
+//     fileStream.on("finish", () => resolve(filePath));
+//   });
+// }

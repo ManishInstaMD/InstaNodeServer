@@ -15,12 +15,12 @@ const server = http.createServer(app);
 // Enhanced CORS configuration
 const corsOptions = {
   origin: [
-    "*",
-    "https://events-apu7.onrender.com/",
+    "https://events-apu7.onrender.com",
     "http://localhost:5173", 
     "https://dzpg95.csb.app",
     "https://instamd.in",
-    "https://internal.instamd.in" 
+    "https://internal.instamd.in",
+    "http://192.168.1.128:5173" 
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -40,6 +40,8 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Static files
 app.use("/processed", express.static(path.join(__dirname, "processed")));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Socket.io setup with proper CORS
 const io = socketIo(server, {
