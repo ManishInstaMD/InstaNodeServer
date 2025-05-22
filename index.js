@@ -7,6 +7,8 @@ const setupRoutes = require("./routes/index");
 const http = require("http");
 const { sequelize } = require("./config/database");
 const defineAssociations = require("./config/associations");
+const fileUpload = require('express-fileupload');
+
 const path = require("path");
 
 const app = express();
@@ -37,6 +39,8 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(fileUpload({ limits: { fileSize: 200 * 1024 * 1024 } })); // 200MB
+
 
 // Static files
 app.use("/processed", express.static(path.join(__dirname, "processed")));

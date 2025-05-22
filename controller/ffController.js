@@ -136,15 +136,18 @@ exports.uploadHandler = async (req, res) => {
       mobile, 
       address,
       videoUrl, 
-      backgroundUrl 
+      backgroundUrl,
+      video_id
     } = req.query;
 
     // Validate required parameters
-    if (!doctorName || !degree || !mobile || !address || !videoUrl) {
+    if (!doctorName || !degree || !mobile || !address || !videoUrl || !video_id) {
       return res.status(400).json({ 
         error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
       });
     }
+    const callbackUrl ="https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
+
 
     // Download files
     const videoPath = await downloadFile(videoUrl, processedDir);
@@ -166,14 +169,51 @@ exports.uploadHandler = async (req, res) => {
     if (videoPath) fs.unlinkSync(videoPath);
     if (backgroundPath) fs.unlinkSync(backgroundPath);
 
-    res.status(200).json({
+
+    const responseData = {
+      video_complete: true,
       message: "Video processed successfully",
-      file: safeFilename,
-      downloadUrl: `/processed/${safeFilename}`,
-    });
+      video_id,
+      final_url: `${req.protocol}://${req.get('host')}/processed/${safeFilename}`,
+    };
+
+    // If callback URL is provided, send the response to PHP API
+    if (callbackUrl) {
+      try {
+        const phpApiResponse = await axios.post(callbackUrl, responseData);
+        console.log('PHP API response:', phpApiResponse.data);
+      } catch (apiError) {
+        console.error('Error calling PHP API:', apiError.message);
+        // Continue with the response even if PHP API call fails
+      }
+    }
+
+    // Return response to original caller
+    res.status(200).json(responseData);
+
+
+    // res.status(200).json({
+    //   video_complete: true,
+    //   message: "Video processed successfully",
+    //   file: safeFilename,
+    //   final_url: `/processed/${safeFilename}`,
+    // });
 
   } catch (error) {
     console.error("Processing error:", error);
+
+    // If callback URL is provided, notify PHP API about the error
+    if (callbackUrl) {
+      try {
+        await axios.post(callbackUrl, {
+          video_complete: false,
+          error: error.message || "Video processing failed"
+        });
+      } catch (apiError) {
+        console.error('Error notifying PHP API about failure:', apiError.message);
+      }
+    }
+
     res.status(500).json({ 
       error: error.message || "Internal server error" 
     });
