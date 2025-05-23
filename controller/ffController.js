@@ -70,10 +70,10 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
   return new Promise((resolve, reject) => {
     const { doctorName = "", degree = "", mobile = "", address = "" } = textData;
 
-    const wrappedDoctorName = wrapText(`Doctor: ${doctorName}`);
-    const wrappedMobile = wrapText(`Mobile: ${mobile}`);
-    const wrappedAddress = wrapText(`Address: ${address}`);
-    const wrappedDegree = wrapText(`Degree: ${degree}`);
+    const wrappedDoctorName = wrapText(`${doctorName}`);
+    const wrappedMobile = wrapText(`${mobile}`);
+    const wrappedAddress = wrapText(`${address}`);
+    const wrappedDegree = wrapText(`${degree}`);
 
     const textBlock = escapeText(`${wrappedDoctorName}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
 
@@ -91,7 +91,7 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
             y: "h-(h-1000)/2",
             width: "iw",
             height: 170,
-            color: "black@1.0",
+            color: "black@0.3",
             t: "fill",
           },
           inputs: "tmp",
@@ -175,7 +175,7 @@ exports.uploadHandler = async (req, res) => {
       video_complete: true,
       message: "Video processed successfully",
       video_id,
-      final_url: `${req.protocol}://${req.get('host')}/processed/${safeFilename}`,
+      final_url: `http://internal.instamd.in:5000/processed/${safeFilename}`
     };
 
     // If callback URL is provided, send the response to PHP API
@@ -221,17 +221,3 @@ exports.uploadHandler = async (req, res) => {
   }
 };
 
-// Helper function to download files from URLs
-// async function downloadFile(url, directory) {
-//   const filename = path.basename(url);
-//   const filePath = path.join(directory, filename);
-  
-  // const response = await fetch(url);
-  // const fileStream = fs.createWriteStream(filePath);
-  
-//   return new Promise((resolve, reject) => {
-//     response.body.pipe(fileStream);
-//     response.body.on("error", reject);
-//     fileStream.on("finish", () => resolve(filePath));
-//   });
-// }
