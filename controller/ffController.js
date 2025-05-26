@@ -175,7 +175,7 @@ exports.uploadHandler = async (req, res) => {
       video_complete: true,
       message: "Video processed successfully",
       video_id,
-      final_url: `http://internal.instamd.in:5000/processed/${safeFilename}`
+      final_url: `http://43.204.238.249:5000/processed/${safeFilename}`
     };
 
     // If callback URL is provided, send the response to PHP API
