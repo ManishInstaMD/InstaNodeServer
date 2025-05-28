@@ -101,7 +101,7 @@ const wrappedMobile1 = wrapText(doctorName);
 const wrappedAddress = wrapText(address);
 const wrappedDegree = wrapText(degree);
 
-    const textBlock = escapeText(`$\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
+    const textBlock = escapeText(`.\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
    const paddedText = padFirstLineOnly(textBlock);
     console.log("textBlock:", paddedText);
     
@@ -136,7 +136,7 @@ const wrappedDegree = wrapText(degree);
             box: 0,
             x: "(w-text_w)/2",
             y: "h-90",
-            line_spacing: 5,
+            line_spacing: 10,
             fix_bounds: 1,
           },
           inputs: "boxed",
@@ -171,7 +171,7 @@ exports.uploadHandler = async (req, res) => {
     } = req.query;
 
     // Validate required parameters
-    if (!doctorName || !degree || !mobile || !address || !videoUrl || !video_id) {
+    if (!doctorName || !degree || !mobile || !address || !videoUrl  || !video_id) {
       return res.status(400).json({ 
         error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
       });
@@ -222,12 +222,12 @@ exports.uploadHandler = async (req, res) => {
     res.status(200).json(responseData);
 
 
-    res.status(200).json({
-      video_complete: true,
-      message: "Video processed successfully",
-      file: safeFilename,
-      final_url: `/processed/${safeFilename}`,
-    });
+    // res.status(200).json({
+    //   video_complete: true,
+    //   message: "Video processed successfully",
+    //   file: safeFilename,
+    //   final_url: `/processed/${safeFilename}`,
+    // });
 
   } catch (error) {
     console.error("Processing error:", error);
@@ -249,4 +249,3 @@ exports.uploadHandler = async (req, res) => {
     });
   }
 };
-
