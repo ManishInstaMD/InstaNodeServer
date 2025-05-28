@@ -42,22 +42,46 @@ async function downloadFile(url, directory) {
   });
 }
 
-function wrapText(text, maxLength = 50) {
+function wrapText(text, maxLength = 40, padExtra = false) {
   const words = text.split(" ");
-  let lines = [];
-  let currentLine = words[0];
+  const lines = [];
+  let currentLine = "";
 
-  for (let i = 1; i < words.length; i++) {
-    if (currentLine.length + words[i].length + 1 <= maxLength) {
-      currentLine += " " + words[i];
+  for (const word of words) {
+    if ((currentLine + " " + word).trim().length <= maxLength) {
+      currentLine = (currentLine + " " + word).trim();
     } else {
-      lines.push(currentLine);
-      currentLine = words[i];
+      lines.push(centerLine(currentLine, maxLength, padExtra));
+      currentLine = word;
     }
   }
-  lines.push(currentLine);
+  if (currentLine) {
+    lines.push(centerLine(currentLine, maxLength, padExtra));
+  }
+
   return lines.join("\n");
 }
+
+function centerLine(line, width, padExtra = false) {
+  const totalPadding = width - line.length;
+  const extraPadding = padExtra ? 4 : 2; // add 4 spaces more if it's doctor name
+  const leftPadding = Math.floor(totalPadding / 2) + extraPadding;
+  const rightPadding = totalPadding - Math.floor(totalPadding / 2) + extraPadding;
+  return " ".repeat(leftPadding) + line + " ".repeat(rightPadding);
+}
+
+
+function padFirstLineOnly(text, width = 40) {
+  const lines = text.split("\n");
+  if (lines.length > 0) {
+    const totalPadding = width - lines[0].trim().length;
+    const leftPadding = Math.floor(totalPadding / 2);
+    lines[0] = " ".repeat(leftPadding) + lines[0].trim();
+  }
+  return lines.join("\n");
+}
+
+
 
 function escapeText(text) {
   return `'${text
@@ -69,13 +93,18 @@ function escapeText(text) {
 async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}) {
   return new Promise((resolve, reject) => {
     const { doctorName = "", degree = "", mobile = "", address = "" } = textData;
+  
 
-    const wrappedDoctorName = wrapText(`${doctorName}`);
-    const wrappedMobile = wrapText(`${mobile}`);
-    const wrappedAddress = wrapText(`${address}`);
-    const wrappedDegree = wrapText(`${degree}`);
+  // const wrappedDoctorName = wrapText(doctorName, 40); 
+const wrappedMobile = wrapText(mobile);
+const wrappedMobile1 = wrapText(doctorName);
+const wrappedAddress = wrapText(address);
+const wrappedDegree = wrapText(degree);
 
-    const textBlock = escapeText(`${wrappedDoctorName}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
+    const textBlock = escapeText(`$\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
+   const paddedText = padFirstLineOnly(textBlock);
+    console.log("textBlock:", paddedText);
+    
 
     ffmpeg()
       .input(backgroundPath)
@@ -100,14 +129,14 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
         {
           filter: "drawtext",
           options: {
-            fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            text: textBlock,
+            fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+            text: paddedText,
             fontsize: 24,
             fontcolor: "white",
             box: 0,
             x: "(w-text_w)/2",
             y: "h-90",
-            line_spacing: 10,
+            line_spacing: 5,
             fix_bounds: 1,
           },
           inputs: "boxed",
@@ -193,12 +222,12 @@ exports.uploadHandler = async (req, res) => {
     res.status(200).json(responseData);
 
 
-    // res.status(200).json({
-    //   video_complete: true,
-    //   message: "Video processed successfully",
-    //   file: safeFilename,
-    //   final_url: `/processed/${safeFilename}`,
-    // });
+    res.status(200).json({
+      video_complete: true,
+      message: "Video processed successfully",
+      file: safeFilename,
+      final_url: `/processed/${safeFilename}`,
+    });
 
   } catch (error) {
     console.error("Processing error:", error);
