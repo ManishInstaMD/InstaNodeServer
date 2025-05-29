@@ -104,9 +104,10 @@ const wrappedMobile1 = wrapText(doctorName);
 const wrappedAddress = wrapText(address);
 const wrappedDegree = wrapText(degree);
 
-    const textBlock = escapeText(`\\\\${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
-   const paddedText = padFirstLineOnly(textBlock);
-    console.log("textBlock:", paddedText);
+   const rawText = `\\\\${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`;
+const paddedText = padFirstLineOnly(rawText);  // pad first line, keep newlines
+const escapedText = escapeText(paddedText);    // then escape for ffmpeg
+
     
 
     ffmpeg()
@@ -133,7 +134,7 @@ const wrappedDegree = wrapText(degree);
           filter: "drawtext",
           options: {
             fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            text: paddedText,
+            text: escapedText,
             fontsize: 24,
             fontcolor: "white",
             box: 0,
