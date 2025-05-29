@@ -129,7 +129,7 @@ const wrappedDegree = wrapText(degree);
         {
           filter: "drawtext",
           options: {
-            fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+            fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             text: paddedText,
             fontsize: 24,
             fontcolor: "white",
@@ -171,7 +171,7 @@ exports.uploadHandler = async (req, res) => {
     } = req.query;
 
     // Validate required parameters
-    if (!doctorName || !degree || !mobile || !address || !videoUrl  || !video_id) {
+    if (!doctorName || !degree || !mobile || !address || !videoUrl || !video_id) {
       return res.status(400).json({ 
         error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
       });
