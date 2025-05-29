@@ -74,8 +74,9 @@ function centerLine(line, width, padExtra = false) {
 function padFirstLineOnly(text, width = 40) {
   const lines = text.split("\n");
   if (lines.length > 0) {
-    const totalPadding = width - lines[0].trim().length;
-    const leftPadding = Math.floor(totalPadding / 2);
+    const firstLineLength = lines[0].trim().length;
+    const totalPadding = width - firstLineLength;
+    const leftPadding = totalPadding > 0 ? Math.floor(totalPadding / 2) : 0;
     lines[0] = " ".repeat(leftPadding) + lines[0].trim();
   }
   return lines.join("\n");
@@ -90,6 +91,8 @@ function escapeText(text) {
     .replace(/'/g, "\\'")}'`;
 }
 
+
+
 async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}) {
   return new Promise((resolve, reject) => {
     const { doctorName = "", degree = "", mobile = "", address = "" } = textData;
@@ -101,7 +104,7 @@ const wrappedMobile1 = wrapText(doctorName);
 const wrappedAddress = wrapText(address);
 const wrappedDegree = wrapText(degree);
 
-    const textBlock = escapeText(`$\\\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
+    const textBlock = escapeText(`\\\\${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
    const paddedText = padFirstLineOnly(textBlock);
     console.log("textBlock:", paddedText);
     
@@ -167,11 +170,11 @@ exports.uploadHandler = async (req, res) => {
       address,
       videoUrl, 
       backgroundUrl,
-      video_id
+     video_id
     } = req.query;
 
     // Validate required parameters
-    if (!doctorName || !degree || !mobile || !address || !videoUrl  || !video_id) {
+    if (!doctorName || !degree || !mobile || !address || !videoUrl  || !video_id ) {
       return res.status(400).json({ 
         error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
       });
