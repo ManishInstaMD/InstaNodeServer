@@ -101,7 +101,7 @@ const wrappedMobile1 = wrapText(doctorName);
 const wrappedAddress = wrapText(address);
 const wrappedDegree = wrapText(degree);
 
-    const textBlock = escapeText(`$\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
+    const textBlock = escapeText(`$\\\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
    const paddedText = padFirstLineOnly(textBlock);
     console.log("textBlock:", paddedText);
     
@@ -171,7 +171,7 @@ exports.uploadHandler = async (req, res) => {
     } = req.query;
 
     // Validate required parameters
-    if (!doctorName || !degree || !mobile || !address || !videoUrl || !video_id) {
+    if (!doctorName || !degree || !mobile || !address || !videoUrl  || !video_id) {
       return res.status(400).json({ 
         error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
       });
