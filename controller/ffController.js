@@ -101,7 +101,7 @@ const wrappedMobile1 = wrapText(doctorName);
 const wrappedAddress = wrapText(address);
 const wrappedDegree = wrapText(degree);
 
-    const textBlock = escapeText(`.\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
+    const textBlock = escapeText(`$\n${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`);
    const paddedText = padFirstLineOnly(textBlock);
     console.log("textBlock:", paddedText);
     
