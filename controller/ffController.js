@@ -96,19 +96,36 @@ function escapeText(text) {
 async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}) {
   return new Promise((resolve, reject) => {
     const { doctorName = "", degree = "", mobile = "", address = "" } = textData;
-  
 
-  // const wrappedDoctorName = wrapText(doctorName, 40); 
-const wrappedMobile = wrapText(mobile);
-const wrappedMobile1 = wrapText(doctorName);
-const wrappedAddress = wrapText(address);
-const wrappedDegree = wrapText(degree);
+    const wrappedMobile1 = wrapText(doctorName, 40, true);
+    const wrappedMobile = wrapText(mobile);
+    const wrappedAddress = wrapText(address);
+    const wrappedDegree = wrapText(degree);
 
-   const rawText = `\\\\${wrappedMobile1}\n${wrappedMobile}\n${wrappedAddress}\n${wrappedDegree}`;
-const paddedText = padFirstLineOnly(rawText);  // pad first line, keep newlines
-const escapedText = escapeText(paddedText);    // then escape for ffmpeg
+    const textLines = [
+      padFirstLineOnly(wrappedMobile1),
+      wrappedMobile,
+      wrappedAddress,
+      wrappedDegree,
+    ];
 
-    
+    // Build drawtext filters for each line
+    const drawtextFilters = textLines.map((line, index) => {
+      return {
+        filter: "drawtext",
+        options: {
+          fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+          text: escapeText(line.trim()),
+          fontsize: 24,
+          fontcolor: "white",
+          x: "(w-text_w)/2",
+          y: `${(index * 30) + 580}`, // Adjust 580 to control vertical position
+          fix_bounds: 1,
+        },
+        inputs: index === 0 ? "boxed" : `t${index - 1}`,
+        outputs: `t${index}`,
+      };
+    });
 
     ffmpeg()
       .input(backgroundPath)
@@ -121,33 +138,23 @@ const escapedText = escapeText(paddedText);    // then escape for ffmpeg
           filter: "drawbox",
           options: {
             x: 0,
-            y: "h-(h-1000)/2",
+            y: "h-(h-1000)/2 - 10",
             width: "iw",
-            height: 170,
+            height: 160,
             color: "black@0.3",
             t: "fill",
           },
           inputs: "tmp",
           outputs: "boxed",
         },
-        {
-          filter: "drawtext",
-          options: {
-            fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            text: escapedText,
-            fontsize: 24,
-            fontcolor: "white",
-            box: 0,
-            x: "(w-text_w)/2",
-            y: "h-90",
-            line_spacing: 10,
-            fix_bounds: 1,
-          },
-          inputs: "boxed",
-          outputs: "final",
-        },
+        ...drawtextFilters,
       ])
-      .outputOptions(["-map", "[final]", "-map", "1:a?", "-c:a", "copy", "-y"])
+      .outputOptions([
+        "-map", `[t${textLines.length - 1}]`,
+        "-map", "1:a?",
+        "-c:a", "copy",
+        "-y",
+      ])
       .output(outputPath)
       .on("start", (cmd) => console.log("Processing started:", cmd))
       .on("end", () => {
@@ -161,6 +168,7 @@ const escapedText = escapeText(paddedText);    // then escape for ffmpeg
       .run();
   });
 }
+
 
 exports.uploadHandler = async (req, res) => {
   try {
@@ -230,7 +238,7 @@ exports.uploadHandler = async (req, res) => {
     //   video_complete: true,
     //   message: "Video processed successfully",
     //   file: safeFilename,
-    //   final_url: `/processed/${safeFilename}`,
+    //   final_url: `http://localhost:5000/processed/${safeFilename}`,
     // });
 
   } catch (error) {
