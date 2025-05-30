@@ -23,7 +23,8 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     'video/mp4', 'video/quicktime', 'video/x-msvideo',
-    'image/jpeg', 'image/png', 'image/webp'
+    'image/jpeg', 'image/png', 'image/webp',
+    'audio/mpeg', 'audio/wav' 
   ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -35,13 +36,14 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 } 
+  limits: { fileSize: 200 * 1024 * 1024 } 
 });
 
 // Temporary file upload endpoint
 router.post('/upload-temp', upload.fields([
   { name: 'video', maxCount: 1 },
-  { name: 'background', maxCount: 1 }
+  { name: 'background', maxCount: 1 },
+  { name: 'audio', maxCount: 1 }
 ]), async (req, res) => {
   try {
     if (!req.files.video) {
@@ -50,12 +52,14 @@ router.post('/upload-temp', upload.fields([
 
     const videoUrl = `/uploads/${req.files.video[0].filename}`;
     const backgroundUrl = `/uploads/${req.files.background[0].filename}`; 
+    const audioUrl = `/uploads/${req.files.audio[0].filename}`;
 
 
     res.json({
       success: true,
       videoUrl,
-      backgroundUrl
+      backgroundUrl,
+      audioUrl
     });
   } catch (error) {
     // Cleanup uploaded files if error occurs
@@ -64,6 +68,10 @@ router.post('/upload-temp', upload.fields([
     }
     if (req.files?.background) {
       fs.unlinkSync(req.files.background[0].path);
+    }
+    if (req.files?.audio) {
+      fs.unlinkSync(req.files.audio[0].path);
+      
     }
     res.status(400).json({
       success: false,

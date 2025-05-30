@@ -11,6 +11,9 @@ const axios = require("axios");
 const processedDir = path.join(__dirname, "../processed");
 fs.mkdirSync(processedDir, { recursive: true });
 fs.chmodSync(processedDir, 0o777);
+
+
+
 async function downloadFile(url, directory) {
   return new Promise((resolve, reject) => {
     const filename = path.basename(new URL(url).pathname);
@@ -41,6 +44,38 @@ async function downloadFile(url, directory) {
     });
   });
 }
+
+
+
+async function compressVideo(inputPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .outputOptions([
+        "-c:v", "libx264",
+        "-crf", "28", // Lower = better quality, larger file
+        "-preset", "slow",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-movflags", "+faststart",
+        "-y"
+      ])
+      .on("start", (cmd) => {
+        console.log("Compression started:", cmd);
+      })
+      .on("end", () => {
+        const stats = fs.statSync(outputPath);
+        const sizeInMB = (stats.size / (1024 * 1024)).toFixed(2);
+        console.log(`✅ Compression complete.\n🗂️  File: ${outputPath}\n📦 Size: ${sizeInMB} MB`);
+        resolve(outputPath);
+      })
+      .on("error", (err) => {
+        console.error("Compression failed:", err);
+        reject(err);
+      })
+      .save(outputPath);
+  });
+}
+
 
 function wrapText(text, maxLength = 40, padExtra = false) {
   const words = text.split(" ");
@@ -93,8 +128,18 @@ function escapeText(text) {
 
 
 
-async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}) {
+async function hasAudioStream(filePath) {
   return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) return reject(err);
+      const hasAudio = metadata.streams.some(s => s.codec_type === 'audio');
+      resolve(hasAudio);
+    });
+  });
+}
+
+async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}, audioPath = null) {
+  return new Promise(async (resolve, reject) => {
     const { doctorName = "", degree = "", mobile = "", address = "" } = textData;
 
     const wrappedMobile1 = wrapText(doctorName, 40, true);
@@ -109,28 +154,60 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
       wrappedDegree,
     ];
 
-    // Build drawtext filters for each line
-    const drawtextFilters = textLines.map((line, index) => {
-      return {
-        filter: "drawtext",
-        options: {
-          fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-          text: escapeText(line.trim()),
-          fontsize: 24,
-          fontcolor: "white",
-          x: "(w-text_w)/2",
-          y: `${(index * 30) + 580}`, // Adjust 580 to control vertical position
-          fix_bounds: 1,
-        },
-        inputs: index === 0 ? "boxed" : `t${index - 1}`,
-        outputs: `t${index}`,
-      };
-    });
+    const drawtextFilters = textLines.map((line, index) => ({
+      filter: "drawtext",
+      options: {
+        fontfile: "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        text: escapeText(line.trim()),
+        fontsize: 24,
+        fontcolor: "white",
+        x: "(w-text_w)/2",
+        y: `${(index * 30) + 580}`,
+        fix_bounds: 1,
+      },
+      inputs: index === 0 ? "boxed" : `t${index - 1}`,
+      outputs: `t${index}`,
+    }));
 
+    const mixedAudioPath = path.join(path.dirname(outputPath), `mixed_audio_${Date.now()}.aac`);
+
+   const mixAudio = () => {
+  return new Promise((resolveMix, rejectMix) => {
     ffmpeg()
-      .input(backgroundPath)
-      .input(videoPath)
+      .input(videoPath)             // Main video (may contain original audio)
+      .input(audioPath)             // Background music
       .complexFilter([
+        "[1:a]volume=0.3[a2]",      // Lower background music to 30%
+        "[0:a][a2]amix=inputs=2:duration=shortest:dropout_transition=2[aout]"
+      ])
+      .outputOptions([
+        "-map", "[aout]",           // Map mixed audio output
+        "-c:a", "aac",
+        "-b:a", "128k"
+      ])
+      .save(mixedAudioPath)
+      .on("end", () => {
+        console.log("🎧 Mixed audio created:", mixedAudioPath);
+        resolveMix(mixedAudioPath);
+      })
+      .on("error", (err) => {
+        console.error("❌ Failed to mix audio:", err);
+        rejectMix(err);
+      });
+  });
+};
+
+
+    const proceedWithVideo = (finalAudioPath, mapAudioInputIndex = null) => {
+      const ffmpegCommand = ffmpeg()
+        .input(backgroundPath)
+        .input(videoPath);
+
+      if (finalAudioPath && mapAudioInputIndex === 2) {
+        ffmpegCommand.input(finalAudioPath);
+      }
+
+      const complexFilters = [
         "[0:v]scale=960:720[bg]",
         "[1:v]scale=-1:720[vid]",
         "[bg][vid]overlay=x=(W-w)/2:y=0[tmp]",
@@ -148,70 +225,126 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
           outputs: "boxed",
         },
         ...drawtextFilters,
-      ])
-      .outputOptions([
-        "-map", `[t${textLines.length - 1}]`,
-        "-map", "1:a?",
-        "-c:a", "copy",
-        "-y",
-      ])
-      .output(outputPath)
-      .on("start", (cmd) => console.log("Processing started:", cmd))
-      .on("end", () => {
-        console.log("Successfully processed:", outputPath);
-        resolve();
-      })
-      .on("error", (err) => {
-        console.error("Processing failed:", err);
-        reject(err);
-      })
-      .run();
+      ];
+
+     const outputOptions = [
+  "-map", `[t${textLines.length - 1}]`,
+  "-c:v", "libx264",
+  "-c:a", "aac",
+  "-b:a", "128k",
+  "-shortest",
+  "-y",
+];
+
+
+      if (finalAudioPath && mapAudioInputIndex !== null) {
+  outputOptions.splice(2, 0, "-map", `${mapAudioInputIndex}:a`);
+}
+
+      ffmpegCommand
+        .complexFilter(complexFilters)
+        .outputOptions(outputOptions)
+        .output(outputPath)
+        .on("start", (cmd) => console.log("🚀 Processing started:", cmd))
+        .on("end", () => {
+          console.log("✅ Successfully processed:", outputPath);
+          if (fs.existsSync(mixedAudioPath)) fs.unlinkSync(mixedAudioPath);
+          resolve();
+        })
+        .on("error", (err) => {
+          console.error("❌ Processing failed:", err);
+          reject(err);
+        })
+        .run();
+    };
+
+    try {
+      const videoHasAudio = await hasAudioStream(videoPath);
+      const bgAudioProvided = audioPath && fs.existsSync(audioPath);
+      const bgAudioHasAudio = bgAudioProvided ? await hasAudioStream(audioPath) : false;
+
+      if (videoHasAudio && bgAudioHasAudio) {
+        // Mix both
+        mixAudio().then((mixedPath) => {
+          proceedWithVideo(mixedPath, 2); // 2:a
+        }).catch(reject);
+      } else if (videoHasAudio) {
+        // Only video audio
+        proceedWithVideo(null, 1); // 1:a
+      } else if (bgAudioHasAudio) {
+        // Only background music
+        proceedWithVideo(null, 2); // 2:a
+      } else {
+        // No audio at all
+        console.warn("⚠️ No audio in video or background. Output will be silent.");
+        proceedWithVideo(null); // no audio map
+      }
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
-
 exports.uploadHandler = async (req, res) => {
   try {
-    const { 
-      doctorName, 
-      degree, 
-      mobile, 
-      address,
-      videoUrl, 
-      backgroundUrl,
-     video_id
-    } = req.query;
-
-    // Validate required parameters
-    if (!doctorName || !degree || !mobile || !address || !videoUrl  || !video_id ) {
-      return res.status(400).json({ 
-        error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
-      });
-    }
-    const callbackUrl ="https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
-
-
-    // Download files
-    const videoPath = await downloadFile(videoUrl, processedDir);
-    const backgroundPath = backgroundUrl 
-      ? await downloadFile(backgroundUrl, processedDir) 
-      : null;
-
-    const safeFilename = `output_${Date.now()}.mp4`;
-    const outputPath = path.join(processedDir, safeFilename);
-
-    await processVideoWithBackground(videoPath, backgroundPath, outputPath, {
+    const {
       doctorName,
       degree,
       mobile,
       address,
-    });
+      videoUrl,
+      backgroundUrl,
+      audioUrl,
+      video_id
+    } = req.query;
 
-    // Cleanup downloaded files
-    if (videoPath) fs.unlinkSync(videoPath);
+    // Validate required parameters
+    if (!doctorName || !degree || !mobile || !address || !videoUrl || !backgroundUrl || !video_id) {
+      return res.status(400).json({
+        error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl, backgroundUrl, audioUrl, video_id"
+      });
+    }
+
+    const callbackUrl = "https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
+
+    // Step 1: Download video
+    const downloadedVideoPath = await downloadFile(videoUrl, processedDir);
+
+    // Step 2: Compress video
+    const compressedVideoPath = path.join(processedDir, `compressed_${Date.now()}.mp4`);
+    await compressVideo(downloadedVideoPath, compressedVideoPath);
+    if (downloadedVideoPath) fs.unlinkSync(downloadedVideoPath);
+
+    // Step 3: Download background
+    const backgroundPath = await downloadFile(backgroundUrl, processedDir);
+
+    // Step 4: Download audio
+    const downloadedAudioPath = await downloadFile(audioUrl, processedDir);
+
+    // Step 5: Generate final output path
+    const safeFilename = `output_${Date.now()}.mp4`;
+    const outputPath = path.join(processedDir, safeFilename);
+
+    // Step 6: Process video with overlays and audio
+    await processVideoWithBackground(
+      compressedVideoPath,
+      backgroundPath,
+      outputPath,
+      { doctorName, degree, mobile, address },
+      downloadedAudioPath
+    );
+
+    // Step 7: Cleanup
+    if (compressedVideoPath) fs.unlinkSync(compressedVideoPath);
     if (backgroundPath) fs.unlinkSync(backgroundPath);
+    if (downloadedAudioPath) fs.unlinkSync(downloadedAudioPath);
 
+    // Step 8: Log output file size
+    const { size } = fs.statSync(outputPath);
+    console.log(`Output file saved: ${outputPath}`);
+    console.log(`Final video size: ${(size / (1024 * 1024)).toFixed(2)} MB`);
 
+    // Step 9: Send success response and callback
     const responseData = {
       video_complete: true,
       message: "Video processed successfully",
@@ -219,45 +352,32 @@ exports.uploadHandler = async (req, res) => {
       final_url: `http://43.204.238.249:5000/processed/${safeFilename}`
     };
 
-    // If callback URL is provided, send the response to PHP API
-    if (callbackUrl) {
-      try {
-        const phpApiResponse = await axios.post(callbackUrl, responseData);
-        console.log('PHP API response:', phpApiResponse.data);
-      } catch (apiError) {
-        console.error('Error calling PHP API:', apiError.message);
-        // Continue with the response even if PHP API call fails
-      }
+    try {
+      const phpApiResponse = await axios.post(callbackUrl, responseData);
+      console.log('PHP API response:', phpApiResponse.data);
+    } catch (apiError) {
+      console.error('Error calling PHP API:', apiError.message);
     }
 
-    // Return response to original caller
     res.status(200).json(responseData);
-
-
-    // res.status(200).json({
-    //   video_complete: true,
-    //   message: "Video processed successfully",
-    //   file: safeFilename,
-    //   final_url: `http://localhost:5000/processed/${safeFilename}`,
-    // });
 
   } catch (error) {
     console.error("Processing error:", error);
+    const callbackUrl = "https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
 
-    // If callback URL is provided, notify PHP API about the error
-    if (callbackUrl) {
-      try {
-        await axios.post(callbackUrl, {
-          video_complete: false,
-          error: error.message || "Video processing failed"
-        });
-      } catch (apiError) {
-        console.error('Error notifying PHP API about failure:', apiError.message);
-      }
+    // Notify failure
+    try {
+      await axios.post(callbackUrl, {
+        video_complete: false,
+        error: error.message || "Video processing failed"
+      });
+    } catch (apiError) {
+      console.error('Error notifying PHP API about failure:', apiError.message);
     }
 
-    res.status(500).json({ 
-      error: error.message || "Internal server error" 
+    res.status(500).json({
+      error: error.message || "Internal server error"
     });
   }
 };
+
