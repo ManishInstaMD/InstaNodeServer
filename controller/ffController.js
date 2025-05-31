@@ -332,9 +332,9 @@ exports.uploadHandler = async (req, res) => {
     );
 
     // Step 6: Cleanup
-    if (downloadedVideoPath) fs.unlinkSync(downloadedVideoPath);
-    if (backgroundPath) fs.unlinkSync(backgroundPath);
-    if (downloadedAudioPath) fs.unlinkSync(downloadedAudioPath);
+    // if (downloadedVideoPath) fs.unlinkSync(downloadedVideoPath);
+    // if (backgroundPath) fs.unlinkSync(backgroundPath);
+    // if (downloadedAudioPath) fs.unlinkSync(downloadedAudioPath);
 
     // // Step 8: Log output file size
     // const { size } = fs.statSync(outputPath);
@@ -378,6 +378,3 @@ exports.uploadHandler = async (req, res) => {
   }
 };
 
-
-// after installing ffmpeg
-// sudo apt-get install ffmpeg
