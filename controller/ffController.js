@@ -85,12 +85,12 @@ function padFirstLineOnly(text, width = 40) {
 
 
 function escapeText(text) {
-  return `'${text
-    .replace(/\\/g, "\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/'/g, "\\'")}'`;
+  return text
+    .replace(/\\/g, "\\\\")   // Escape backslashes
+    .replace(/:/g, "\\:")     // Escape colons
+    .replace(/'/g, "\\\\'")   // Escape single quotes properly
+    .replace(/,/g, "\\,");    // Escape commas for safety
 }
-
 
 
 async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}) {
