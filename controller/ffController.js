@@ -6,6 +6,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 const https = require("https");
 const http = require("http");
 const axios = require("axios");
+const mime = require('mime-types');
 
 const processedDir = path.join(__dirname, "../processed");
 fs.mkdirSync(processedDir, { recursive: true });
@@ -14,7 +15,13 @@ fs.chmodSync(processedDir, 0o777);
 function downloadFile(url, directory) {
   return new Promise((resolve, reject) => {
     try {
-      const filename = path.basename(new URL(url).pathname);
+      let filename = path.basename(new URL(url).pathname);
+
+      // Add default .mp4 extension if missing
+      if (!path.extname(filename)) {
+        filename += ".mp4";
+      }
+
       const filePath = path.join(directory, filename);
       const fileStream = fs.createWriteStream(filePath);
       const protocol = url.startsWith("https") ? https : http;
@@ -24,6 +31,16 @@ function downloadFile(url, directory) {
           reject(new Error(`Failed to download ${url}. Status code: ${response.statusCode}`));
           return;
         }
+
+        // Try to get MIME type from headers
+        const contentType = response.headers['content-type'] || 'unknown';
+        const extensionFromMime = mime.extension(contentType) || 'unknown';
+
+        console.log(`\n🔽 Downloading from: ${url}`);
+        console.log(`📄 File name: ${filename}`);
+        console.log(`📁 Save path: ${filePath}`);
+        console.log(`📦 Content-Type: ${contentType}`);
+        console.log(`📎 Extension (from MIME): .${extensionFromMime}`);
 
         response.pipe(fileStream);
 
@@ -202,6 +219,7 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
   });
 }
 
+
 exports.uploadHandler = async (req, res) => {
   const {
     doctorName,
@@ -222,14 +240,38 @@ exports.uploadHandler = async (req, res) => {
     });
   }
 
+  let videoPath, backgroundPath, audioPath;
   try {
-    const videoPath = await downloadFile(videoUrl, processedDir);
-    const backgroundPath = await downloadFile(backgroundUrl, processedDir);
-    const audioPath = audioUrl ? await downloadFile(audioUrl, processedDir) : null;
+    console.log("📥 Downloading video...");
+    videoPath = await downloadFile(videoUrl, processedDir);
+    console.log("✅ Video downloaded:", {
+      path: videoPath,
+      size: fs.statSync(videoPath).size,
+      ext: path.extname(videoPath),
+    });
+
+    console.log("📥 Downloading background...");
+    backgroundPath = await downloadFile(backgroundUrl, processedDir);
+    console.log("✅ Background downloaded:", {
+      path: backgroundPath,
+      size: fs.statSync(backgroundPath).size,
+      ext: path.extname(backgroundPath),
+    });
+
+    if (audioUrl) {
+      console.log("📥 Downloading audio...");
+      audioPath = await downloadFile(audioUrl, processedDir);
+      console.log("✅ Audio downloaded:", {
+        path: audioPath,
+        size: fs.statSync(audioPath).size,
+        ext: path.extname(audioPath),
+      });
+    }
 
     const outputFile = `output_${Date.now()}.mp4`;
     const outputPath = path.join(processedDir, outputFile);
 
+    console.log("🎬 Starting FFmpeg processing...");
     await processVideoWithBackground(
       videoPath,
       backgroundPath,
@@ -237,29 +279,55 @@ exports.uploadHandler = async (req, res) => {
       { doctorName, degree, mobile, address },
       audioPath
     );
+    console.log("✅ Video processed successfully:", outputPath);
 
+    // Clean up temporary files
     [videoPath, backgroundPath, audioPath].forEach((file) => {
-      if (file && fs.existsSync(file)) fs.unlinkSync(file);
+      if (file && fs.existsSync(file)) {
+        fs.unlinkSync(file);
+        console.log("🧹 Deleted temp file:", file);
+      }
     });
 
     const finalUrl = `http://3.110.196.88:5000/processed/${outputFile}`;
-    const responseData = { video_complete: true, message: "Video processed successfully", video_id, final_url: finalUrl };
+    const responseData = {
+      video_complete: true,
+      message: "Video processed successfully",
+      video_id,
+      final_url: finalUrl,
+    };
 
+    // Send callback
     try {
       const apiRes = await axios.post(callbackUrl, responseData);
-      console.log("Callback response:", apiRes.data);
+      console.log("🔄 Callback sent:", apiRes.data);
     } catch (err) {
-      console.error("Callback error:", err.message);
+      console.error("❌ Callback failed:", err.message);
     }
 
     res.status(200).json(responseData);
   } catch (error) {
-    console.error("Processing error:", error);
+    console.error("❌ Processing error:", error.message);
+
+    // Report failure via callback
     try {
-      await axios.post(callbackUrl, { video_complete: false, error: error.message });
+      await axios.post(callbackUrl, {
+        video_complete: false,
+        error: error.message,
+        video_id,
+      });
+      console.log("📡 Failure callback sent.");
     } catch (e) {
-      console.error("Callback failure reporting error:", e.message);
+      console.error("❌ Failure callback error:", e.message);
     }
+
+    // Attempt cleanup
+    [videoPath, backgroundPath, audioPath].forEach((file) => {
+      if (file && fs.existsSync(file)) {
+        fs.unlinkSync(file);
+        console.log("🧹 Cleaned up after error:", file);
+      }
+    });
 
     res.status(500).json({ error: error.message || "Internal Server Error" });
   }
