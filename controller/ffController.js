@@ -171,6 +171,7 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
 
 
 exports.uploadHandler = async (req, res) => {
+   const callbackUrl ="https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
   try {
     const { 
       doctorName, 
@@ -188,7 +189,7 @@ exports.uploadHandler = async (req, res) => {
         error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl" 
       });
     }
-    const callbackUrl ="https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
+   
 
 
     // Download files
