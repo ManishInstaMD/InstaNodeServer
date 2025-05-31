@@ -377,3 +377,7 @@ exports.uploadHandler = async (req, res) => {
     });
   }
 };
+
+
+// after installing ffmpeg
+// sudo apt-get install ffmpeg
