@@ -156,7 +156,7 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
           .input(videoPath)
           .input(audioPath)
           .complexFilter([
-            "[1:a]volume=0.3[a2]",
+            "[1:a]volume=0.2[a2]",
             "[0:a][a2]amix=inputs=2:duration=shortest:dropout_transition=2[aout]",
           ])
           .outputOptions(["-map", "[aout]", "-c:a", "aac", "-b:a", "128k"])

@@ -16,6 +16,7 @@ const therapyRoutes = require("./therapyRoutes");
 const sesRoutes = require("./sesMailRoutes");
 const ffRoutes = require("./ffRoutes");
 const registerRoute = require("./registerRoute")
+const whatsAppRoute = require("./whatsAppRoutes")
 
 
 module.exports = (app) => {
@@ -37,4 +38,5 @@ module.exports = (app) => {
   app.use('/api', sesRoutes);
   app.use('/api', ffRoutes);
   app.use('/api/register', registerRoute);
+  app.use('/api', whatsAppRoute);
 };
