@@ -128,9 +128,9 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
 
     const textLines = [
       padFirstLineOnly(wrapText(doctorName, 40, true)),
+      wrapText(degree),
       wrapText(mobile),
       wrapText(address),
-      wrapText(degree),
     ];
 
     const drawtextFilters = textLines.map((line, i) => ({
