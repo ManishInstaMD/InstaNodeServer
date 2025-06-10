@@ -403,12 +403,7 @@ const createPMT = async (req, res) => {
   };
   try {
     const newPMT = await pmt_master.create(pmtData);
-
-    // Emit real-time update
-    const updatedData = await pmt_master.findAll({ where: { company_id } });
-    req.io.emit("updateData", updatedData);
-
-    res.json(newPMT);
+    res.json({ success: true, message: "PMT created successfully", data: newPMT });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Error creating PMT" });

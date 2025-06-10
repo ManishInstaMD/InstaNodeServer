@@ -8,6 +8,10 @@ const Call = sequelize.define('Call', {
     autoIncrement: true,
     primaryKey: true,
   },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
   pmt_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
