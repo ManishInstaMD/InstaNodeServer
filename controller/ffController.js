@@ -6,7 +6,9 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 const https = require("https");
 const http = require("http");
 const axios = require("axios");
-const mime = require('mime-types');
+const mime = require("mime-types");
+const { addJob, getQueueSize } = require("../Helpers/jobQueue");
+const { getVideoDuration } = require("../Helpers/getVideoDuration");
 
 const processedDir = path.join(__dirname, "../processed");
 fs.mkdirSync(processedDir, { recursive: true });
@@ -26,38 +28,44 @@ function downloadFile(url, directory) {
       const fileStream = fs.createWriteStream(filePath);
       const protocol = url.startsWith("https") ? https : http;
 
-      protocol.get(url, (response) => {
-        if (response.statusCode !== 200) {
-          reject(new Error(`Failed to download ${url}. Status code: ${response.statusCode}`));
-          return;
-        }
-
-        // Try to get MIME type from headers
-        const contentType = response.headers['content-type'] || 'unknown';
-        const extensionFromMime = mime.extension(contentType) || 'unknown';
-
-        console.log(`\n🔽 Downloading from: ${url}`);
-        console.log(`📄 File name: ${filename}`);
-        console.log(`📁 Save path: ${filePath}`);
-        console.log(`📦 Content-Type: ${contentType}`);
-        console.log(`📎 Extension (from MIME): .${extensionFromMime}`);
-
-        response.pipe(fileStream);
-
-        fileStream.on("finish", () => {
-          fileStream.close();
-          if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
-            reject(new Error(`Downloaded file is empty: ${filePath}`));
-          } else {
-            resolve(filePath);
+      protocol
+        .get(url, (response) => {
+          if (response.statusCode !== 200) {
+            reject(
+              new Error(
+                `Failed to download ${url}. Status code: ${response.statusCode}`
+              )
+            );
+            return;
           }
-        });
 
-        fileStream.on("error", (err) => {
-          fs.unlinkSync(filePath);
-          reject(err);
-        });
-      }).on("error", (err) => reject(err));
+          // Try to get MIME type from headers
+          const contentType = response.headers["content-type"] || "unknown";
+          const extensionFromMime = mime.extension(contentType) || "unknown";
+
+          console.log(`\n🔽 Downloading from: ${url}`);
+          console.log(`📄 File name: ${filename}`);
+          console.log(`📁 Save path: ${filePath}`);
+          console.log(`📦 Content-Type: ${contentType}`);
+          console.log(`📎 Extension (from MIME): .${extensionFromMime}`);
+
+          response.pipe(fileStream);
+
+          fileStream.on("finish", () => {
+            fileStream.close();
+            if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
+              reject(new Error(`Downloaded file is empty: ${filePath}`));
+            } else {
+              resolve(filePath);
+            }
+          });
+
+          fileStream.on("error", (err) => {
+            fs.unlinkSync(filePath);
+            reject(err);
+          });
+        })
+        .on("error", (err) => reject(err));
     } catch (err) {
       reject(err);
     }
@@ -89,7 +97,8 @@ function centerLine(line, width, padExtra = false) {
   const totalPadding = width - line.length;
   const extraPadding = padExtra ? 4 : 2;
   const leftPadding = Math.floor(totalPadding / 2) + extraPadding;
-  const rightPadding = totalPadding - Math.floor(totalPadding / 2) + extraPadding;
+  const rightPadding =
+    totalPadding - Math.floor(totalPadding / 2) + extraPadding;
   return " ".repeat(leftPadding) + line + " ".repeat(rightPadding);
 }
 
@@ -116,15 +125,26 @@ async function hasAudioStream(filePath) {
     if (!fs.existsSync(filePath)) return resolve(false);
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) return resolve(false);
-      const hasAudio = metadata.streams.some(s => s.codec_type === "audio");
+      const hasAudio = metadata.streams.some((s) => s.codec_type === "audio");
       resolve(hasAudio);
     });
   });
 }
 
-async function processVideoWithBackground(videoPath, backgroundPath, outputPath, textData = {}, audioPath = null) {
+async function processVideoWithBackground(
+  videoPath,
+  backgroundPath,
+  outputPath,
+  textData = {},
+  audioPath = null
+) {
   return new Promise(async (resolve, reject) => {
-    const { doctorName = "", degree = "", mobile = "", address = "" } = textData;
+    const {
+      doctorName = "",
+      degree = "",
+      mobile = "",
+      address = "",
+    } = textData;
 
     const textLines = [
       padFirstLineOnly(wrapText(doctorName, 40, true)),
@@ -148,7 +168,10 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
       outputs: `t${i}`,
     }));
 
-    const mixedAudioPath = path.join(path.dirname(outputPath), `mixed_audio_${Date.now()}.aac`);
+    const mixedAudioPath = path.join(
+      path.dirname(outputPath),
+      `mixed_audio_${Date.now()}.aac`
+    );
 
     const mixAudio = () =>
       new Promise((resolveMix, rejectMix) => {
@@ -167,7 +190,8 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
 
     const proceedWithVideo = (finalAudioPath, mapAudioIndex = null) => {
       const ffmpegCommand = ffmpeg().input(backgroundPath).input(videoPath);
-      if (finalAudioPath && mapAudioIndex === 2) ffmpegCommand.input(finalAudioPath);
+      if (finalAudioPath && mapAudioIndex === 2)
+        ffmpegCommand.input(finalAudioPath);
 
       const complexFilters = [
         "[0:v]scale=960:720[bg]",
@@ -175,15 +199,34 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
         "[bg][vid]overlay=x=(W-w)/2:y=0[tmp]",
         {
           filter: "drawbox",
-          options: { x: 0, y: "h-(h-1000)/2 - 10", width: "iw", height: 160, color: "black@0.3", t: "fill" },
+          options: {
+            x: 0,
+            y: "h-(h-1000)/2 - 10",
+            width: "iw",
+            height: 160,
+            color: "black@0.3",
+            t: "fill",
+          },
           inputs: "tmp",
           outputs: "boxed",
         },
         ...drawtextFilters,
       ];
 
-      const outputOptions = ["-map", `[t${textLines.length - 1}]`, "-c:v", "libx264", "-c:a", "aac", "-b:a", "128k", "-shortest", "-y"];
-      if (mapAudioIndex !== null) outputOptions.splice(2, 0, "-map", `${mapAudioIndex}:a`);
+      const outputOptions = [
+        "-map",
+        `[t${textLines.length - 1}]`,
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-shortest",
+        "-y",
+      ];
+      if (mapAudioIndex !== null)
+        outputOptions.splice(2, 0, "-map", `${mapAudioIndex}:a`);
 
       ffmpegCommand
         .complexFilter(complexFilters)
@@ -201,7 +244,10 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
 
     try {
       const hasVideoAudio = await hasAudioStream(videoPath);
-      const hasBGMusic = audioPath && fs.existsSync(audioPath) && (await hasAudioStream(audioPath));
+      const hasBGMusic =
+        audioPath &&
+        fs.existsSync(audioPath) &&
+        (await hasAudioStream(audioPath));
 
       if (hasVideoAudio && hasBGMusic) {
         const mixedPath = await mixAudio();
@@ -219,6 +265,121 @@ async function processVideoWithBackground(videoPath, backgroundPath, outputPath,
   });
 }
 
+// exports.uploadHandler = async (req, res) => {
+//   const {
+//     doctorName,
+//     degree,
+//     mobile,
+//     address,
+//     videoUrl,
+//     backgroundUrl,
+//     audioUrl,
+//     video_id,
+//   } = req.query;
+
+//   const callbackUrl = "https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
+
+//   if (!doctorName || !degree || !mobile || !address || !videoUrl || !backgroundUrl || !video_id) {
+//     return res.status(400).json({
+//       error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl, backgroundUrl, video_id",
+//     });
+//   }
+
+//   let videoPath, backgroundPath, audioPath;
+//   try {
+//     console.log("📥 Downloading video...");
+//     videoPath = await downloadFile(videoUrl, processedDir);
+//     console.log("✅ Video downloaded:", {
+//       path: videoPath,
+//       size: fs.statSync(videoPath).size,
+//       ext: path.extname(videoPath),
+//     });
+
+//     console.log("📥 Downloading background...");
+//     backgroundPath = await downloadFile(backgroundUrl, processedDir);
+//     console.log("✅ Background downloaded:", {
+//       path: backgroundPath,
+//       size: fs.statSync(backgroundPath).size,
+//       ext: path.extname(backgroundPath),
+//     });
+
+//     if (audioUrl) {
+//       console.log("📥 Downloading audio...");
+//       audioPath = await downloadFile(audioUrl, processedDir);
+//       console.log("✅ Audio downloaded:", {
+//         path: audioPath,
+//         size: fs.statSync(audioPath).size,
+//         ext: path.extname(audioPath),
+//       });
+//     }
+
+//     const outputFile = `output_${Date.now()}.mp4`;
+//     const outputPath = path.join(processedDir, outputFile);
+
+//     const estimatedDuration = await getVideoDuration(videoPath);
+
+//     console.log("🎬 Starting FFmpeg processing...");
+
+//     await processVideoWithBackground(
+//       videoPath,
+//       backgroundPath,
+//       outputPath,
+//       { doctorName, degree, mobile, address },
+//       audioPath
+//     );
+//     console.log("✅ Video processed successfully:", outputPath);
+
+//     // Clean up temporary files
+//     [videoPath, backgroundPath, audioPath].forEach((file) => {
+//       if (file && fs.existsSync(file)) {
+//         fs.unlinkSync(file);
+//         console.log("🧹 Deleted temp file:", file);
+//       }
+//     });
+
+//     const finalUrl = `http://13.203.97.253:5000/processed/${outputFile}`;
+//     const responseData = {
+//       video_complete: true,
+//       message: "Video processed successfully",
+//       video_id,
+//       final_url: finalUrl,
+//     };
+
+//     // Send callback
+//     try {
+//       const apiRes = await axios.post(callbackUrl, responseData);
+//       console.log("🔄 Callback sent:", apiRes.data);
+//     } catch (err) {
+//       console.error("❌ Callback failed:", err.message);
+//     }
+
+//     res.status(200).json(responseData);
+//   } catch (error) {
+//     console.error("❌ Processing error:", error.message);
+
+//     // Report failure via callback
+//     try {
+//       await axios.post(callbackUrl, {
+//         video_complete: false,
+//         error: error.message,
+//         video_id,
+//       });
+//       console.log("📡 Failure callback sent.");
+//     } catch (e) {
+//       console.error("❌ Failure callback error:", e.message);
+//     }
+
+//     // Attempt cleanup
+//     [videoPath, backgroundPath, audioPath].forEach((file) => {
+//       if (file && fs.existsSync(file)) {
+//         fs.unlinkSync(file);
+//         console.log("🧹 Cleaned up after error:", file);
+//       }
+//     });
+
+//     res.status(500).json({ error: error.message || "Internal Server Error" });
+//   }
+// };
 
 exports.uploadHandler = async (req, res) => {
   const {
@@ -232,11 +393,21 @@ exports.uploadHandler = async (req, res) => {
     video_id,
   } = req.query;
 
-  const callbackUrl = "https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
+  const callbackUrl =
+    "https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
 
-  if (!doctorName || !degree || !mobile || !address || !videoUrl || !backgroundUrl || !video_id) {
+  if (
+    !doctorName ||
+    !degree ||
+    !mobile ||
+    !address ||
+    !videoUrl ||
+    !backgroundUrl ||
+    !video_id
+  ) {
     return res.status(400).json({
-      error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl, backgroundUrl, video_id",
+      error:
+        "Missing required parameters: doctorName, degree, mobile, address, videoUrl, backgroundUrl, video_id",
     });
   }
 
@@ -271,41 +442,51 @@ exports.uploadHandler = async (req, res) => {
     const outputFile = `output_${Date.now()}.mp4`;
     const outputPath = path.join(processedDir, outputFile);
 
-    console.log("🎬 Starting FFmpeg processing...");
-    await processVideoWithBackground(
-      videoPath,
-      backgroundPath,
-      outputPath,
-      { doctorName, degree, mobile, address },
-      audioPath
-    );
-    console.log("✅ Video processed successfully:", outputPath);
+    const estimatedDuration = await getVideoDuration(videoPath);
 
-    // Clean up temporary files
-    [videoPath, backgroundPath, audioPath].forEach((file) => {
-      if (file && fs.existsSync(file)) {
-        fs.unlinkSync(file);
-        console.log("🧹 Deleted temp file:", file);
+    console.log("🎬 Adding job to queue...");
+    addJob(async () => {
+      await processVideoWithBackground(
+        videoPath,
+        backgroundPath,
+        outputPath,
+        { doctorName, degree, mobile, address },
+        audioPath
+      );
+      console.log("✅ Video processed successfully:", outputPath);
+
+      // Clean up temporary files
+      [videoPath, backgroundPath, audioPath].forEach((file) => {
+        if (file && fs.existsSync(file)) {
+          fs.unlinkSync(file);
+          console.log("🧹 Deleted temp file:", file);
+        }
+      });
+
+      const finalUrl = `http://13.203.97.253:5000/processed/${outputFile}`;
+      const responseData = {
+        video_complete: true,
+        message: "Video processed successfully",
+        video_id,
+        final_url: finalUrl,
+      };
+
+      // Send callback
+      try {
+        const apiRes = await axios.post(callbackUrl, responseData);
+        console.log("🔄 Callback sent:", apiRes.data);
+      } catch (err) {
+        console.error("❌ Callback failed:", err.message);
       }
-    });
+    }, estimatedDuration);
 
-    const finalUrl = `http://13.203.97.253:5000/processed/${outputFile}`;
-    const responseData = {
-      video_complete: true,
-      message: "Video processed successfully",
+    // Immediately respond that job has been queued
+    res.status(202).json({
+      message: "Video processing job added to queue",
       video_id,
-      final_url: finalUrl,
-    };
-
-    // Send callback
-    try {
-      const apiRes = await axios.post(callbackUrl, responseData);
-      console.log("🔄 Callback sent:", apiRes.data);
-    } catch (err) {
-      console.error("❌ Callback failed:", err.message);
-    }
-
-    res.status(200).json(responseData);
+      estimated_duration: estimatedDuration,
+      queue_size: getQueueSize(),
+    });
   } catch (error) {
     console.error("❌ Processing error:", error.message);
 

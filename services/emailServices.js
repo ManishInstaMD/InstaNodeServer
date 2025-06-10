@@ -6,29 +6,29 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// // Create a transporter using your email credentials
-// const transporter = nodemailer.createTransport({
-//   service: 'gmail',  // You can change this to any service you want
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS,
-//   },
-// });
-
-
-// AWS SES Client with v3
-const ses = new SESClient({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+// Create a transporter using your email credentials
+const transporter = nodemailer.createTransport({
+  service: 'gmail',  // You can change this to any service you want
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
+
+// AWS SES Client with v3
+// const ses = new SESClient({
+//   region: process.env.AWS_REGION,
+//   credentials: {
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   },
+// });
+
 // Nodemailer transporter using AWS SES v3
-const transporter = nodemailer.createTransport({
-  SES: { ses, aws: { SendEmailCommand } },
-});
+// const transporter = nodemailer.createTransport({
+//   SES: { ses, aws: { SendEmailCommand } },
+// });
 
 // Function to send a welcome email with OTP
 const sendEmailOTP = async (to, subject, text, replacements, html) => {
