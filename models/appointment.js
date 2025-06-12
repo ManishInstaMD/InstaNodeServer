@@ -12,6 +12,14 @@ const appointment = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    pmt_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    remarks: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     company_name: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -28,10 +36,6 @@ const appointment = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    create_date: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     is_delete: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
@@ -39,7 +43,7 @@ const appointment = sequelize.define(
   },
   {
     tableName: "appointment",
-    timestamps: false,
+    timestamps: true,
   }
 );
 
