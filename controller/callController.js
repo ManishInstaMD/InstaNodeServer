@@ -27,14 +27,37 @@ const callController = {
     }
   },
 
-  getCall: async (req, res) => {
-    try {
-      const result = await myServices.read(db.models.Call, req.params.id);
-      res.status(result.success ? 200 : 404).json(result);
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
-  },
+  // getCall: async (req, res) => {
+  //   const { id } = req.params;
+  //   console.log("id", id);
+    
+  //   try {
+  //     const result = await myServices.read(db.models.Call, id);
+  //     res.status(result.success ? 200 : 404).json(result);
+  //   } catch (err) {
+  //     res.status(500).json({ success: false, message: err.message });
+  //   }
+  // },
+
+ getCall: async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await db.models.Call.findAll({
+      where: { pmt_id: id },
+      order: [['createdAt', 'DESC']], // Change 'createdAt' to the field you want to sort by
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: "Call found successfully"
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+},
+
 
   updateCall: async (req, res) => {
     try {

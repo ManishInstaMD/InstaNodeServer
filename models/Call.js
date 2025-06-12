@@ -16,11 +16,7 @@ const Call = sequelize.define('Call', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  subject: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  description: {
+   remark: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
@@ -28,7 +24,7 @@ const Call = sequelize.define('Call', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  is_delete: {    // soft delete flag (optional)
+  is_delete: {    
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
