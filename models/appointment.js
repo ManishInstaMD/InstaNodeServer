@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const { sequelize } = require("../config/database"); 
+const { sequelize } = require("../config/database");
 const appointment = sequelize.define(
   "appointment",
   {
@@ -28,8 +28,20 @@ const appointment = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    status:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     person_user_id: {
       type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    updated_by: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     appointment_date: {

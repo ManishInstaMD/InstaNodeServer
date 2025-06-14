@@ -126,9 +126,9 @@ const myServices = {
   },
 
   // List all records from the provided model
-  list: async (model, include = null, where = {}, limit = 10, offset = 0) => {
+  list: async (model, include = null, where = {}, limit = 10, offset = 0, order = [['createdAt', 'DESC']]) => {
     try {
-      const options = { where, limit, offset,is_delete: 0 };
+      const options = { where: { ...where, is_delete: 0 }, limit, offset, order };
 
       // Conditionally include relationships if `include` is provided
       if (include) {
