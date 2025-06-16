@@ -463,7 +463,7 @@ exports.uploadHandler = async (req, res) => {
         }
       });
 
-      const finalUrl = `http://13.203.97.253:5000/processed/${outputFile}`;
+      const finalUrl = `https://crm.instamd.co.in/processed/${outputFile}`;
       const responseData = {
         video_complete: true,
         message: "Video processed successfully",

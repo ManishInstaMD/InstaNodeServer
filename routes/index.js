@@ -18,7 +18,7 @@ const ffRoutes = require("./ffRoutes");
 const registerRoute = require("./registerRoute")
 const whatsAppRoute = require("./whatsAppRoutes")
 const callRoutes = require("./callRoutes");
-
+const userRoutes = require("./userRoutes")
 
 module.exports = (app) => {
   app.use("/api/auth", authRoutes);
@@ -41,4 +41,5 @@ module.exports = (app) => {
   app.use('/api/register', registerRoute);
   app.use('/api', whatsAppRoute);
   app.use('/api', callRoutes);
+  app.use("/api/users", userRoutes);
 };
