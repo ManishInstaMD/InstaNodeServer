@@ -1,21 +1,49 @@
 const express = require("express");
 const db = require("../config/database");
+const bcrypt = require("bcrypt");
+const { Op } = require("sequelize");
 
-// CREATE user (superadmin only)
 exports.createUser = async (req, res) => {
   try {
     if (req.user.role !== "superadmin") {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const { name, username, email, password, role } = req.body;
+    const { name, email, password, role } = req.body;
 
-    const newUser = await db.models.User.create({ name, username, email, password, role });
+    // 1. Check if user already exists (by email)
+    const existingUser = await db.models.User.findOne({
+      where: {
+        [Op.or]: [{ email }, ]
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User with this email or username already exists"
+      });
+    }
+
+    // 2. Hash password
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 salt rounds
+
+    // 3. Create user
+    const newUser = await db.models.User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role
+    });
+
     res.status(201).json({ success: true, user: newUser });
+
   } catch (error) {
+    console.error("User creation error:", error);
     res.status(500).json({ success: false, message: "Error creating user", error });
   }
 };
+
 
 // READ: List all users (superadmin only)
 exports.getAllUsers = async (req, res) => {
