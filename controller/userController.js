@@ -52,7 +52,13 @@ exports.getAllUsers = async (req, res) => {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const users = await db.models.User.findAll({ where: { is_delete: 0 } });
+   const users = await db.models.User.findAll({
+      where: {
+        is_delete: 0,
+        role: { [Op.not]: "superadmin" } // Exclude superadmin
+      }
+    });
+
     res.status(200).json({ success: true, users });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching users", error:error.message});
