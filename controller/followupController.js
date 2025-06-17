@@ -24,12 +24,24 @@ const followUpController = {
     res.status(response.success ? 200 : 400).json(response);
   },
 
-  list: async (req, res) => {
+  // list: async (req, res) => {
+  //   const limit = parseInt(req.query.limit) || 10;
+  //   const offset = parseInt(req.query.offset) || 0;
+  //   const result = await myServices.list(db.models.follow_up, null, { is_delete: 0 }, limit, offset);
+  //   res.status(200).json(result);
+  // },
+
+  list:async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
-    const result = await myServices.list(db.models.follow_up, null, { is_delete: 0 }, limit, offset);
-    res.status(200).json(result);
-  },
+    const data = await db.models.follow_up.findAndCountAll({
+      where: { is_delete: 0 },
+      limit: limit,
+      offset: offset,
+      order: [["followup_create_date", "DESC"]],
+    });
+    res.status(200).json({ success: true, message: "All followups retrieved successfully!", data: data.rows, total: data.count });
+  }
 };
 
 module.exports = followUpController;
