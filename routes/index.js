@@ -20,6 +20,7 @@ const whatsAppRoute = require("./whatsAppRoutes")
 const callRoutes = require("./callRoutes");
 const userRoutes = require("./userRoutes")
 const homeRoutes = require("./homeRoutes");
+const helperRoutes = require("./helperRoutes");
 
 module.exports = (app) => {
   app.use("/api/auth", authRoutes);
@@ -44,4 +45,5 @@ module.exports = (app) => {
   app.use('/api', callRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/home", homeRoutes);
+  app.use("/api", helperRoutes);
 };

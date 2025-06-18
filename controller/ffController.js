@@ -9,6 +9,7 @@ const axios = require("axios");
 const mime = require("mime-types");
 const { addJob, getQueueSize } = require("../Helpers/jobQueue");
 const { getVideoDuration } = require("../Helpers/getVideoDuration");
+const uploadToS3 = require("../Helpers/s3Uploader");
 
 const processedDir = path.join(__dirname, "../processed");
 fs.mkdirSync(processedDir, { recursive: true });
@@ -265,122 +266,6 @@ async function processVideoWithBackground(
   });
 }
 
-// exports.uploadHandler = async (req, res) => {
-//   const {
-//     doctorName,
-//     degree,
-//     mobile,
-//     address,
-//     videoUrl,
-//     backgroundUrl,
-//     audioUrl,
-//     video_id,
-//   } = req.query;
-
-//   const callbackUrl = "https://instamd.in/v6/company/ajanta/zillion/video/post_function.php";
-
-//   if (!doctorName || !degree || !mobile || !address || !videoUrl || !backgroundUrl || !video_id) {
-//     return res.status(400).json({
-//       error: "Missing required parameters: doctorName, degree, mobile, address, videoUrl, backgroundUrl, video_id",
-//     });
-//   }
-
-//   let videoPath, backgroundPath, audioPath;
-//   try {
-//     console.log("📥 Downloading video...");
-//     videoPath = await downloadFile(videoUrl, processedDir);
-//     console.log("✅ Video downloaded:", {
-//       path: videoPath,
-//       size: fs.statSync(videoPath).size,
-//       ext: path.extname(videoPath),
-//     });
-
-//     console.log("📥 Downloading background...");
-//     backgroundPath = await downloadFile(backgroundUrl, processedDir);
-//     console.log("✅ Background downloaded:", {
-//       path: backgroundPath,
-//       size: fs.statSync(backgroundPath).size,
-//       ext: path.extname(backgroundPath),
-//     });
-
-//     if (audioUrl) {
-//       console.log("📥 Downloading audio...");
-//       audioPath = await downloadFile(audioUrl, processedDir);
-//       console.log("✅ Audio downloaded:", {
-//         path: audioPath,
-//         size: fs.statSync(audioPath).size,
-//         ext: path.extname(audioPath),
-//       });
-//     }
-
-//     const outputFile = `output_${Date.now()}.mp4`;
-//     const outputPath = path.join(processedDir, outputFile);
-
-//     const estimatedDuration = await getVideoDuration(videoPath);
-
-//     console.log("🎬 Starting FFmpeg processing...");
-
-//     await processVideoWithBackground(
-//       videoPath,
-//       backgroundPath,
-//       outputPath,
-//       { doctorName, degree, mobile, address },
-//       audioPath
-//     );
-//     console.log("✅ Video processed successfully:", outputPath);
-
-//     // Clean up temporary files
-//     [videoPath, backgroundPath, audioPath].forEach((file) => {
-//       if (file && fs.existsSync(file)) {
-//         fs.unlinkSync(file);
-//         console.log("🧹 Deleted temp file:", file);
-//       }
-//     });
-
-//     const finalUrl = `http://13.203.97.253:5000/processed/${outputFile}`;
-//     const responseData = {
-//       video_complete: true,
-//       message: "Video processed successfully",
-//       video_id,
-//       final_url: finalUrl,
-//     };
-
-//     // Send callback
-//     try {
-//       const apiRes = await axios.post(callbackUrl, responseData);
-//       console.log("🔄 Callback sent:", apiRes.data);
-//     } catch (err) {
-//       console.error("❌ Callback failed:", err.message);
-//     }
-
-//     res.status(200).json(responseData);
-//   } catch (error) {
-//     console.error("❌ Processing error:", error.message);
-
-//     // Report failure via callback
-//     try {
-//       await axios.post(callbackUrl, {
-//         video_complete: false,
-//         error: error.message,
-//         video_id,
-//       });
-//       console.log("📡 Failure callback sent.");
-//     } catch (e) {
-//       console.error("❌ Failure callback error:", e.message);
-//     }
-
-//     // Attempt cleanup
-//     [videoPath, backgroundPath, audioPath].forEach((file) => {
-//       if (file && fs.existsSync(file)) {
-//         fs.unlinkSync(file);
-//         console.log("🧹 Cleaned up after error:", file);
-//       }
-//     });
-
-//     res.status(500).json({ error: error.message || "Internal Server Error" });
-//   }
-// };
-
 exports.uploadHandler = async (req, res) => {
   const {
     doctorName,
@@ -462,14 +347,29 @@ exports.uploadHandler = async (req, res) => {
           console.log("🧹 Deleted temp file:", file);
         }
       });
+      const s3Key = `processed/${outputFile}`;
+      const s3Url = await uploadToS3(outputPath, "your-bucket-name", s3Key);
+      console.log("☁️ Uploaded to S3:", s3Url);
 
-      const finalUrl = `https://crm.instamd.co.in/processed/${outputFile}`;
+      if (fs.existsSync(outputPath)) {
+        fs.unlinkSync(outputPath);
+        console.log("🧹 Deleted local processed video:", outputPath);
+      }
+      // console.log("📡 Preparing callback data...", outputFile);
+
+      const finalUrl = s3Url;
+      console.log("📡 Sending callback to:", callbackUrl);
+      console.log("📡 Sending finalUrl to:", finalUrl);
       const responseData = {
         video_complete: true,
         message: "Video processed successfully",
         video_id,
-        final_url: finalUrl,
+        final_url: finalUrl.url,
+        original_video_id: outputFile,
       };
+
+      console.log("📡 Callback data:", responseData);
+      
 
       // Send callback
       try {
