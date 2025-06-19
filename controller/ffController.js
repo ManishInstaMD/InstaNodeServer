@@ -115,11 +115,12 @@ function padFirstLineOnly(text, width = 40) {
 }
 
 function escapeText(text) {
-  return `'${text
-    .replace(/\\/g, "\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/'/g, "\\'")}'`;
+  return text
+    .replace(/\\/g, '\\\\')   // escape backslashes
+    .replace(/:/g, '\\:')     // escape colons (FFmpeg requirement)
+    .replace(/'/g, "\\'");    // escape single quotes
 }
+
 
 async function hasAudioStream(filePath) {
   return new Promise((resolve, reject) => {
