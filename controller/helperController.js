@@ -5,11 +5,11 @@ const getId = async (req, res) => {
   try {
     const { original_video_id, title, description, tags, video_id } = req.body;
 
-    if (!original_video_id || !video_id) {
-      return res
-        .status(400)
-        .json({ error: "Missing original_video_id or video_id" });
-    }
+    // if (!original_video_id || !video_id) {
+    //   return res
+    //     .status(400)
+    //     .json({ error: "Missing original_video_id or video_id" });
+    // }
 
     const s3Url = `https://yt-process.s3.ap-south-1.amazonaws.com/processed/videos/${original_video_id}`;
     console.log("📥 Queued for YouTube upload:", original_video_id, s3Url);
