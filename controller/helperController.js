@@ -36,7 +36,11 @@ const getId = async (req, res) => {
 
     // Send callback to external URL
     try {
-      const apiRes = await axios.post(callbackUrl, responseData);
+      const apiRes = await axios.post(callbackUrl, responseData, {
+        headers: {
+          "Content-Type": "application/json", // Important for PHP to parse it correctly
+        },
+      });
       console.log("🔄 Callback sent:", apiRes.data);
     } catch (err) {
       console.error("❌ Callback failed:", err.message);
