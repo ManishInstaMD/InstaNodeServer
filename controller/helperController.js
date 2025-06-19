@@ -11,12 +11,15 @@ const getId = async (req, res) => {
     const s3Url = `https://yt-process.s3.ap-south-1.amazonaws.com/processed/videos/${original_video_id}`;
     console.log("📥 Queued for YouTube upload:", original_video_id, s3Url);
 
-    await uploadToYouTube(s3Url, { title, description, tags });
+    // Capture YouTube response here
+    const youtubeResponse = await uploadToYouTube(s3Url, { title, description, tags });
 
     return res.json({
-      message: "YouTube upload started",
+      message: "YouTube upload completed",
       original_video_id,
       s3Url,
+      youtube_video_id: youtubeResponse.id, 
+      youtube_url: `https://youtube.com/watch?v=${youtubeResponse.id}`, 
     });
   } catch (err) {
     console.error("❌ Error in /youtube/queue:", err.message);
