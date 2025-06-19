@@ -23,7 +23,7 @@ const getId = async (req, res) => {
 
     // Callback payload
     const callbackUrl =
-      "https://phpstack-894223-5375430.cloudwaysapps.com/youtube";
+      "https://phpstack-894223-5375430.cloudwaysapps.com/youtube/separate_data.php";
     const responseData = {
       video_complete: true,
       message: "Video processed successfully and uploaded to YouTube",
