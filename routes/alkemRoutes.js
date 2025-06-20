@@ -21,7 +21,7 @@ router.post("/createdoctor", async (req, res) => {
 });
 
 
-router.get("/total", async (req, res) => {
+router.get("/docTotal", async (req, res) => {
   try {
     const total = await Alkem.count();
     res.status(200).json({ total });

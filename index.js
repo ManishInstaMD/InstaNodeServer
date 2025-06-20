@@ -22,7 +22,8 @@ const corsOptions = {
     "https://dzpg95.csb.app",
     "https://instamd.in",
     "https://internal.instamd.in",
-    "http://192.168.1.128:5173" 
+    "http://192.168.1.128:5173" ,
+    "https://alkem.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
