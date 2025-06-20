@@ -21,7 +21,7 @@ const callRoutes = require("./callRoutes");
 const userRoutes = require("./userRoutes")
 const homeRoutes = require("./homeRoutes");
 const helperRoutes = require("./helperRoutes");
-
+const alkemRoutes = require("./alkemRoutes");
 module.exports = (app) => {
   app.use("/api/auth", authRoutes);
   app.use("/api", customerPanelRoutes);
@@ -46,4 +46,5 @@ module.exports = (app) => {
   app.use("/api/users", userRoutes);
   app.use("/api/home", homeRoutes);
   app.use("/api", helperRoutes);
+  app.use("/api",alkemRoutes);
 };
