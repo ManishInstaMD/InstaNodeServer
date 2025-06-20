@@ -116,11 +116,10 @@ function padFirstLineOnly(text, width = 40) {
 
 function escapeText(text) {
   return text
-    .replace(/\\/g, '\\\\')   // escape backslashes
-    .replace(/:/g, '\\:')     // escape colons (FFmpeg requirement)
-    .replace(/'/g, "\\'");    // escape single quotes
+    .replace(/\\/g, "\\\\") // escape backslashes
+    .replace(/:/g, "\\:") // escape colons (FFmpeg requirement)
+    .replace(/'/g, "\\'"); // escape single quotes
 }
-
 
 async function hasAudioStream(filePath) {
   return new Promise((resolve, reject) => {
@@ -251,15 +250,13 @@ async function processVideoWithBackground(
         fs.existsSync(audioPath) &&
         (await hasAudioStream(audioPath));
 
-      if (hasVideoAudio && hasBGMusic) {
+      if (hasVideoAudio) {
+        // Mix background music with video audio
         const mixedPath = await mixAudio();
         proceedWithVideo(mixedPath, 2);
-      } else if (hasVideoAudio) {
-        proceedWithVideo(null, 1);
-      } else if (hasBGMusic) {
-        proceedWithVideo(null, 2);
       } else {
-        proceedWithVideo(null);
+        // Use only background music directly
+        proceedWithVideo(audioPath, 2);
       }
     } catch (err) {
       reject(err);
@@ -370,7 +367,6 @@ exports.uploadHandler = async (req, res) => {
       };
 
       console.log("📡 Callback data:", responseData);
-      
 
       // Send callback
       try {
