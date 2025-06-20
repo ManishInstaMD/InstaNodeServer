@@ -1,4 +1,5 @@
 const express = require("express");
+const db = require("../config/database");
 const router = express.Router();
 const Alkem = require("../models/alkem");
 
@@ -21,13 +22,16 @@ router.post("/createdoctor", async (req, res) => {
 });
 
 
-router.get("/docTotal", async (req, res) => {
+router.get("/usercount", async (req, res) => {
   try {
     const total = await Alkem.count();
     res.status(200).json({ total });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to count users", error: err.message });
+    console.error("Error counting doctors:", err);
+    res.status(500).json({
+      message: "Failed to count doctors",
+      error: err.message,
+    });
   }
 });
 

@@ -46,5 +46,5 @@ module.exports = (app) => {
   app.use("/api/users", userRoutes);
   app.use("/api/home", homeRoutes);
   app.use("/api", helperRoutes);
-  app.use("/api",alkemRoutes);
+  app.use("/api/alkem",alkemRoutes);
 };
