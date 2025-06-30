@@ -6,14 +6,14 @@ const Alkem = require("../models/alkem");
 // POST /api/alkem/createdoctor
 router.post("/createdoctor", async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email , user_id } = req.body;
 
     // Basic validation
-    if (!name || !email) {
+    if (!name || !email || !user_id) {
       return res.status(400).json({ message: "Name and email are required." });
     }
 
-    const newEntry = await Alkem.create({ name, email });
+    const newEntry = await Alkem.create({ name, email , user_id});
     res.status(201).json({ message: "Doctor created successfully", data: newEntry });
   } catch (error) {
     console.error("Error creating doctor:", error);
