@@ -1,8 +1,6 @@
 const express = require("express");
+const router = express.Router(); // You missed this line
 const sendInviteEmail = require("../utils/mail2");
-const app = express();
-
-app.use(express.json());
 
 router.post("/send-invite", async (req, res) => {
   const { toEmail, doctorName } = req.body;
@@ -21,4 +19,3 @@ router.post("/send-invite", async (req, res) => {
 });
 
 module.exports = router;
-
