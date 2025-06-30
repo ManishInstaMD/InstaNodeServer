@@ -18,6 +18,10 @@ const Alkem = sequelize.define("Alkem", {
       isEmail: true,
     },
   },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 }, {
   tableName: "alkem",
   timestamps: true,
