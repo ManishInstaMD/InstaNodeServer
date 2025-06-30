@@ -37,7 +37,7 @@ const sendInviteEmail = async (toEmail, doctorName = "Doctor") => {
   await transporter.sendMail({
     from: `"${process.env.SENDER_NAME}" <${process.env.SENDER_EMAIL}>`,
     to: toEmail,
-    subject: `Welcome Dr. ${doctorName}`,
+    subject: "Alkem Altron Thanks You on Doctor’s Day",
     html: htmlContent,
   });
 };
