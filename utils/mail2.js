@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
+const path = require("path");
 
 const sendInviteEmail = async (toEmail, doctorName = "Doctor") => {
   const transporter = nodemailer.createTransport({
@@ -39,6 +40,13 @@ const sendInviteEmail = async (toEmail, doctorName = "Doctor") => {
     to: toEmail,
     subject: "Alkem Altron Thanks You on Doctor’s Day",
     html: htmlContent,
+    attachments: [
+      {
+        filename: "thankyou-template.png",
+        path: path.join(__dirname, "../assets/template.png"),
+        cid: "templateImage",
+      },
+    ],
   });
 };
 
