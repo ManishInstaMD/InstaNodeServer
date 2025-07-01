@@ -34,7 +34,7 @@ router.get('/alkenUser', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const deleted = await db.models.alkem.destroy({ where: { id } });
+    const deleted = await db.models.Alkem.destroy({ where: { id } });
 
     if (deleted) {
       res.json({ message: 'User deleted successfully' });
@@ -42,7 +42,7 @@ router.delete('/:id', async (req, res) => {
       res.status(404).json({ message: 'User not found' });
     }
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
