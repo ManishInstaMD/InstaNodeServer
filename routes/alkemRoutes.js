@@ -12,6 +12,10 @@ router.post("/createdoctor", async (req, res) => {
     if (!name || !email || !user_id) {
       return res.status(400).json({ message: "Name and email are required." });
     }
+    const existingUser = await Alkem.findOne({ where: { email: email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists." });
+    }
 
     const newEntry = await Alkem.create({ name, email , user_id});
     res.status(201).json({ message: "Doctor created successfully", data: newEntry });
